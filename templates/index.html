@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Plant Disease Detector</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            text-align: center;
+        }
+        h1 { color: #2e7d32; }
+        #upload-box {
+            border: 2px dashed #2e7d32;
+            padding: 40px;
+            margin: 20px 0;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        #preview {
+            max-width: 300px;
+            margin: 10px auto;
+            display: none;
+        }
+        button {
+            background: #2e7d32;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            display: none;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 8px;
+            display: none;
+        }
+        .success { background: #e8f5e9; color: #2e7d32; }
+        .warning { background: #fff3e0; color: #e65100; }
+    </style>
+</head>
+<body>
+    <h1>🌿 Plant Disease Detector</h1>
+    <p>Upload a leaf image to detect disease</p>
+
+    <div id="upload-box" onclick="document.getElementById('file-input').click()">
+        <p>Click to upload leaf image</p>
+        <input type="file" id="file-input" accept="image/*" 
+               style="display:none" onchange="previewImage(this)">
+    </div>
+
+    <img id="preview">
+    <br>
+    <button id="predict-btn" onclick="predict()">Detect Disease</button>
+
+    <div id="result"></div>
+
+    <script>
+        function previewImage(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                const preview = document.getElementById('preview');
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+                document.getElementById('predict-btn').style.display = 'inline-block';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function predict() {
+            const file = document.getElementById('file-input').files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('image', file);
+
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('predict-btn').textContent = 'Analyzing...';
+
+            const response = await fetch('/predict', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+
+            if (data.warning) {
+                resultDiv.className = 'warning';
+                resultDiv.innerHTML = `⚠️ ${data.warning}`;
+            } else {
+                resultDiv.className = 'success';
+                resultDiv.innerHTML = `
+                    ✅ <strong>${data.predicted_class.replace(/_/g, ' ')}</strong><br>
+                    Confidence: ${(data.confidence * 100).toFixed(1)}%
+                `;
+            }
+
+            document.getElementById('predict-btn').textContent = 'Detect Disease';
+        }
+    </script>
+</body>
+</html>
