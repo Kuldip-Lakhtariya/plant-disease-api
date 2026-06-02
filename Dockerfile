@@ -6,20 +6,26 @@ RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
     make \
+    libpq-dev \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-ENV CARGO_HOME=/tmp/cargo
-ENV RUSTUP_HOME=/tmp/rustup
+RUN rustup default stable && \
+    rustc --version && \
+    cargo --version
 
 WORKDIR /app
 
 COPY requirements.txt .
 
-RUN pip install --no-cache-dir --upgrade pip && \
+RUN cat requirements.txt | grep -v "pywinpty" | grep -v "jupyter" | grep -v "ipykernel" | grep -v "ipython" | grep -v "ipywidgets" | grep -v "notebook" > requirements-clean.txt && \
+    mv requirements-clean.txt requirements.txt
+
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
     pip install --no-cache-dir -r requirements.txt
 
 COPY . .
